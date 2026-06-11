@@ -1,0 +1,86 @@
+###############################################################################
+# Moodle 4.4 – Docker Build Context .dockerignore
+# Keeps the build context lean by excluding everything that does not need to
+# land inside the PHP-FPM or Cron images built from ./docker/php/Dockerfile.
+###############################################################################
+
+# ── Git internals ─────────────────────────────────────────────────────────────
+.git/
+.github/
+.gitattributes
+.gitignore
+
+# ── Secrets & local-only config ───────────────────────────────────────────────
+.env
+config.php
+
+# ── Docker files themselves (not needed inside the image) ─────────────────────
+docker-compose.yml
+docker-compose.override.yml
+docker-compose.local.yml
+docker/
+
+# ── Node / NPM (Grunt tooling – not needed at runtime) ───────────────────────
+node_modules/
+npm-shrinkwrap.json
+package.json
+package-lock.json
+Gruntfile.js
+.nvmrc
+
+# ── Composer vendor directory ─────────────────────────────────────────────────
+# (Dockerfile installs production deps during build)
+vendor/
+
+# ── Moodle runtime data (managed by named Docker volumes) ─────────────────────
+moodledata/
+localcache/
+
+# ── Test infrastructure ───────────────────────────────────────────────────────
+behat.yml.dist
+phpunit.xml.dist
+phpcs.xml.dist
+.phpunit.result.cache
+behat-results/
+tests/
+
+# ── IDE & editor artefacts ────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── CI / linting configs (not needed in the image) ───────────────────────────
+.eslintrc
+.jshintrc
+.jshintignore
+.stylelintrc
+.gherkin-lintrc
+.shifter.json
+.phpstorm.meta.php/
+.upgradenotes/
+
+# ── Docs ─────────────────────────────────────────────────────────────────────
+*.md
+*.txt
+!COPYING.txt
+INSTALL.txt
+CONTRIBUTING.md
+README.md
+TRADEMARK.txt
+
+# ── Build artefacts (AMD/RequireJS – already compiled in source tree) ─────────
+**/amd/build/
+**/yui/build/
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+.grunt/
+security.txt

@@ -1,0 +1,124 @@
+###############################################################################
+# Moodle 4.4 – Production Docker Compose
+# XAMPP → Docker migration stack
+###############################################################################
+# Usage:
+#   docker compose up -d --build
+#   docker compose logs -f
+#   docker compose down
+###############################################################################
+
+services:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PHP-FPM  –  Runs all Moodle PHP code
+  # ═══════════════════════════════════════════════════════════════════════════
+  php:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: SPIMS-online-php
+    restart: unless-stopped
+    volumes:
+      # Live code mount – edit on the host, see changes instantly
+      - ./:/var/www/html
+      # Persistent moodledata (cache, sessions, uploaded files)
+      - moodledata:/var/www/moodledata
+    networks:
+      - moodle_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Apache 2.4  –  Front-end web server (reverse proxy to PHP-FPM)
+  # ═══════════════════════════════════════════════════════════════════════════
+  web:
+    image: httpd:2.4-alpine
+    container_name: SPIMS-online-php-web
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    volumes:
+      # Same Moodle source tree so Apache can serve static assets directly
+      - ./:/var/www/html
+      # Custom httpd.conf that proxies .php to the php service
+      - ./docker/apache/httpd.conf:/usr/local/apache2/conf/httpd.conf:ro
+    networks:
+      - SPIMS-online-network
+    depends_on:
+      - php
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # MariaDB 10.11 LTS  –  Database
+  # ═══════════════════════════════════════════════════════════════════════════
+  db:
+    image: mariadb:10.11
+    container_name: SPIMS-online-db
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-file-per-table=1
+      - --innodb-large-prefix=ON
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - SPIMS-online-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Cron  –  Sidecar that runs Moodle scheduled tasks every minute
+  # ═══════════════════════════════════════════════════════════════════════════
+  cron:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: SPIMS-online-cron
+    restart: unless-stopped
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        echo "* * * * * /usr/local/bin/php /var/www/html/admin/cli/cron.php >> /proc/1/fd/1 2>&1" > /etc/crontab
+        crontab /etc/crontab
+        echo "[cron] Moodle cron sidecar started – running every 60 s"
+        # Fallback: run cron in a shell loop (BusyBox crond may not be present)
+        while true; do
+          /usr/local/bin/php /var/www/html/admin/cli/cron.php 2>&1
+          sleep 60
+        done
+    volumes:
+      - ./:/var/www/html
+      - moodledata:/var/www/moodledata
+    networks:
+      - SPIMS-online-network
+    depends_on:
+      db:
+        condition: service_healthy
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Named Volumes
+# ═════════════════════════════════════════════════════════════════════════════
+volumes:
+  moodledata:
+    driver: local
+  mariadb_data:
+    driver: local
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Network
+# ═════════════════════════════════════════════════════════════════════════════
+networks:
+  SPIMS-online-network:
+    driver: bridge
