@@ -77,9 +77,7 @@ CONTRIBUTING.md
 README.md
 TRADEMARK.txt
 
-# ── Build artefacts (AMD/RequireJS – already compiled in source tree) ─────────
-**/amd/build/
-**/yui/build/
+
 
 # ── Misc ─────────────────────────────────────────────────────────────────────
 .grunt/

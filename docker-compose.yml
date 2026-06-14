@@ -19,6 +19,13 @@ services:
       dockerfile: Dockerfile
     container_name: SPIMS-online-php
     restart: unless-stopped
+    environment:
+      MARIADB_HOST: db
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MOODLE_WWWROOT: ${MOODLE_WWWROOT}
+      MOODLE_SSLPROXY: ${MOODLE_SSLPROXY:-false}
     volumes:
       # Live code mount – edit on the host, see changes instantly
       - ./:/var/www/html
@@ -86,6 +93,13 @@ services:
       dockerfile: Dockerfile
     container_name: SPIMS-online-cron
     restart: unless-stopped
+    environment:
+      MARIADB_HOST: db
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MOODLE_WWWROOT: ${MOODLE_WWWROOT}
+      MOODLE_SSLPROXY: ${MOODLE_SSLPROXY:-false}
     entrypoint: /bin/sh
     command:
       - -c
